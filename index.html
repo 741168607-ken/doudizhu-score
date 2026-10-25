@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#b8322a">
+  <meta name="description" content="线下三人斗地主入金计分工具">
+  <title>牛肉面斗地主 · 计分台</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <svg class="svg-defs" aria-hidden="true"><defs>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5Zm4 4a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12"/></symbol>
+    <symbol id="i-muted" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5Zm5 5 5 5m0-5-5 5"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 7 4 12l5 5M5 12h8a6 6 0 0 1 6 6"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87m-2-11.96a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-bomb" viewBox="0 0 24 24"><path d="M15 8a7 7 0 1 1-7 10 7 7 0 0 1 7-10Zm1-2 2-2m0 0 1-3m-1 3 3 1M5 11l-2-1m2 5-3 1"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h10m4 0h2M4 17h2m4 0h10M14 4v6M6 14v6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  </defs></svg>
+
+  <header class="brand-bar">
+    <div class="brand-inner">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 48 48"><path d="M9 19h30c0 11-5 17-15 17S9 30 9 19Z"/><path d="M14 36v4m20-4v4M17 8c-4 4 4 5 0 9m8-11c-4 4 4 5 0 10m8-8c-4 4 4 5 0 9"/></svg>
+      </div>
+      <div><h1>牛肉面斗地主</h1><p>一碗牛肉面，一局斗地主</p></div>
+      <button id="soundBtn" class="icon-btn" type="button" aria-label="关闭音效" aria-pressed="false"><svg><use href="#i-volume"/></svg></button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <section class="score-panel" aria-labelledby="tableTitle">
+      <div class="panel-heading">
+        <div><span class="eyebrow">CURRENT TABLE</span><h2 id="tableTitle">本桌计分</h2></div>
+        <span id="phaseBadge" class="phase-badge"><i></i>等待开局</span>
+      </div>
+
+      <div id="playerGrid" class="player-grid" aria-label="场上玩家"></div>
+
+      <div class="settle-strip">
+        <div class="bomb-copy"><svg><use href="#i-bomb"/></svg><div><strong>本局炸弹</strong><span>0 炸按桌限下限计入金</span></div></div>
+        <button id="bombPicker" class="value-picker" type="button" data-picker="bombs" aria-label="选择炸弹数量"><span id="bombValue">没</span><svg><use href="#i-chevron"/></svg></button>
+        <button id="settleBtn" class="settle-btn" type="button">炸<span>确认本局入金</span></button>
+      </div>
+      <div id="roundHint" class="round-hint" aria-live="polite"><span class="hint-dot"></span>开局后，点击玩家身份按钮确认地主胜负</div>
+      <div id="undoZone" class="undo-zone" tabindex="0" role="button" aria-label="长按撤回最近一次入金"><svg><use href="#i-undo"/></svg><span id="undoText">长按本区域 2 秒，可撤回最近一次入金</span><i id="holdProgress"></i></div>
+    </section>
+
+    <aside class="side-column">
+      <section class="rank-panel" aria-labelledby="rankTitle">
+        <div class="section-heading"><div><span class="eyebrow">LEADERBOARD</span><h2 id="rankTitle">入金排名</h2></div><span class="small-note">高到低</span></div>
+        <ol id="rankList" class="rank-list"></ol>
+        <button id="expandRank" class="text-btn" type="button" hidden>展开全部<svg><use href="#i-chevron"/></svg></button>
+      </section>
+
+      <section class="settings-panel" aria-labelledby="settingsTitle">
+        <div class="section-heading"><div><span class="eyebrow">TABLE RULES</span><h2 id="settingsTitle">牌桌设置</h2></div><svg class="heading-icon"><use href="#i-settings"/></svg></div>
+        <div class="setting-row"><div><strong>桌限</strong><span>入金上下限</span></div><div class="paired-pickers"><button class="value-picker" data-picker="min" type="button"><small>MIN</small><span id="minValue">1</span><svg><use href="#i-chevron"/></svg></button><button class="value-picker" data-picker="max" type="button"><small>MAX</small><span id="maxValue">200</span><svg><use href="#i-chevron"/></svg></button></div></div>
+        <div class="setting-row"><div><strong>斩杀线</strong><span>触发玩家轮换</span></div><div class="paired-pickers"><button class="value-picker" data-picker="threshold" type="button"><span id="thresholdValue">100</span><svg><use href="#i-chevron"/></svg></button><button class="value-picker" data-picker="step" type="button"><span id="stepValue">+50</span><svg><use href="#i-chevron"/></svg></button></div></div>
+        <div class="bench-block"><div class="bench-title"><span><svg><use href="#i-users"/></svg>候场玩家</span><small id="benchCount">3 位候场</small></div><div id="benchList" class="bench-list"></div></div>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="action-dock">
+    <div class="action-inner"><button id="resetBtn" class="reset-btn" type="button">翻台<span>清空本桌</span></button><button id="startBtn" class="start-btn" type="button">搞起来！<span>开始计分</span></button></div>
+  </footer>
+
+  <div id="sheetBackdrop" class="backdrop" hidden></div>
+  <section id="pickerSheet" class="bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="pickerTitle" hidden>
+    <div class="sheet-handle"></div><div class="sheet-heading"><div><span class="eyebrow">SCROLL TO SELECT</span><h2 id="pickerTitle">选择玩家</h2></div><button id="cancelPicker" class="text-btn" type="button">取消</button></div>
+    <div class="wheel-wrap"><div class="wheel-highlight"></div><div id="wheel" class="wheel" tabindex="0" role="listbox" aria-label="选项滚轮"></div></div>
+    <button id="confirmPicker" class="sheet-confirm" type="button">确定</button>
+  </section>
+
+  <div id="modalBackdrop" class="backdrop modal-backdrop" hidden>
+    <section class="modal" role="alertdialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody">
+      <span id="modalKicker" class="eyebrow">PLEASE CONFIRM</span><h2 id="modalTitle">确认操作</h2><div id="modalBody" class="modal-body"></div><div id="modalActions" class="modal-actions"></div>
+    </section>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="announcer" class="sr-only" aria-live="polite"></div>
+
+  <script src="./game.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
