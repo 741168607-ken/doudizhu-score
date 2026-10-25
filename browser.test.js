@@ -21,15 +21,25 @@ async function main() {
   assert.equal(await c.eval(`document.getElementById('modalBackdrop').hidden`),true);
   for (const [width,height] of [[320,568],[360,640],[375,667],[390,844],[412,915],[430,932],[768,1024],[1280,900]]) {
     await viewport(width,height);
-    const size = await c.eval(`({width:innerWidth,height:innerHeight,scroll:document.documentElement.scrollWidth,scrollH:document.documentElement.scrollHeight,third:document.querySelector('[data-player-picker="2"]').getBoundingClientRect().right,settle:document.getElementById('settleBtn').getBoundingClientRect().right,scoreWidth:document.querySelector('.score-panel').getBoundingClientRect().width,appWidth:document.querySelector('.app-shell').getBoundingClientRect().width,settingsBottom:document.querySelector('.settings-panel').getBoundingClientRect().bottom,actionTop:document.querySelector('.action-dock').getBoundingClientRect().top,benchBottom:document.querySelector('.bench-list').getBoundingClientRect().bottom})`);
-    assert.ok(size.scroll <= width, `${width}px 页面横向溢出: ${size.scroll}`); assert.ok(size.third <= width && size.settle <= width, `${width}px 关键按钮超出屏幕`);
-    if(width<=720){ assert.ok(size.scrollH <= height, `${width}x${height} 页面出现纵向滚动: ${size.scrollH}`); assert.ok(size.scoreWidth > size.appWidth*.9, `${width}x${height} 主计分区未占满屏宽`); assert.ok(size.settingsBottom <= size.actionTop+1 && size.benchBottom <= size.actionTop+1, `${width}x${height} 设置区域被裁切`); }
+    const size = await c.eval(`({width:innerWidth,height:innerHeight,scroll:document.documentElement.scrollWidth,scrollH:document.documentElement.scrollHeight,third:document.querySelector('[data-player-picker="2"]').getBoundingClientRect().right,settle:document.getElementById('settleBtn').getBoundingClientRect().right,scoreWidth:document.querySelector('.score-panel').getBoundingClientRect().width,appWidth:document.querySelector('.app-shell').getBoundingClientRect().width,moreHidden:document.getElementById('moreScreen').inert})`);
+    assert.ok(size.scroll <= width && size.scrollH <= height, `${width}x${height} 页面出现滚动`); assert.ok(size.third <= width && size.settle <= width, `${width}px 关键按钮超出屏幕`); assert.ok(size.scoreWidth > size.appWidth*.85 && size.moreHidden, '第一屏未独立显示本桌计分');
+    await click('#moreBtn'); await wait(400);
+    const more = await c.eval(`({visible:document.getElementById('moreScreen').classList.contains('visible'),settingsBottom:document.querySelector('.settings-panel').getBoundingClientRect().bottom,actionTop:document.querySelector('.action-dock').getBoundingClientRect().top,benchBottom:document.querySelector('.bench-list').getBoundingClientRect().bottom})`);
+    assert.ok(more.visible && more.settingsBottom <= more.actionTop+1 && more.benchBottom <= more.actionTop+1, `${width}x${height} 第二屏设置区域被裁切`); await click('#backBtn'); await wait(400);
   }
-  console.log('PASS 6 种手机尺寸及平板桌面无横向溢出，手机整屏无页面滚动');
-  await viewport(390,844); await click('#startBtn'); await click('[data-role="0"]');
-  await click('#bombPicker'); await click('[data-option="3"]'); await click('#confirmPicker'); await click('#settleBtn'); await wait(2300);
+  console.log('PASS 六种手机及平板桌面：第一屏仅计分，第二屏向上滑入且无页面滚动');
+  await viewport(390,844);
+  assert.equal(await c.eval(`document.querySelector('[data-bomb-value="0"]').getAttribute('aria-selected')`),'true');
+  await wait(250); assert.ok(await c.eval(`(()=>{const w=document.getElementById('bombWheel'),b=w.querySelector('[data-bomb-value="0"]'),wr=w.getBoundingClientRect(),br=b.getBoundingClientRect();return Math.abs(br.left+br.width/2-(wr.left+wr.width/2))<3})()`),'默认 0 未在横向滚轮中居中');
+  assert.equal(await c.eval(`document.querySelectorAll('.role-btn img').length`),3);
+  assert.ok(await c.eval(`[...document.querySelectorAll('.role-btn img')].every(img=>img.complete&&img.naturalWidth>0)`));
+  await click('#startBtn'); await click('[data-role="0"]');
+  assert.match(await c.eval(`document.querySelector('[data-role="0"] img').src`),/landlord-win/);
+  assert.match(await c.eval(`document.querySelector('[data-role="1"] img').src`),/farmer-lose/);
+  await c.eval(`(()=>{const w=document.getElementById('bombWheel'),b=w.querySelector('[data-bomb-value="5"]'),wr=w.getBoundingClientRect(),br=b.getBoundingClientRect();w.scrollLeft=w.scrollLeft+br.left-wr.left+br.width/2-w.clientWidth/2;w.dispatchEvent(new Event('scroll'))})()`); await wait(400);
+  assert.equal((await stored()).bombs,5); await click('[data-bomb-value="3"]'); await click('#settleBtn'); await wait(2300);
   let s = await stored(); assert.equal(s.totals['魏'],8); assert.equal(s.totals['熊'],8); assert.equal(s.totals['方']||0,0);
-  console.log('PASS 页面完成开局、选地主、选 3 炸、2 秒入账');
+  console.log('PASS 横向滚轮滑动选择、角色状态图片、3 炸结算与 2 秒入账');
   const point = await c.eval(`(()=>{const r=document.getElementById('undoZone').getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}})()`);
   await c.send('Input.dispatchMouseEvent',{type:'mousePressed',...point,button:'left',clickCount:1}); await wait(2200); await c.send('Input.dispatchMouseEvent',{type:'mouseReleased',...point,button:'left',clickCount:1});
   assert.match(await c.eval(`document.getElementById('modalTitle').textContent`),/撤回/); await click('#modalActions .modal-confirm');
@@ -44,6 +54,9 @@ async function main() {
   await click('#resetBtn'); await click('#modalActions .modal-confirm'); s = await stored(); assert.equal(s.started,false); assert.equal(s.threshold,100); assert.equal(s.active[0],'方');
   await click('#resetBtn'); assert.equal(await c.eval(`document.getElementById('modalBackdrop').hidden`),true);
   console.log('PASS 翻台确认恢复默认，默认状态翻台不弹窗');
+  const manifest = await (await fetch('http://127.0.0.1:8080/manifest.webmanifest')).json(); assert.equal(manifest.display,'fullscreen'); assert.ok(manifest.icons.length>=2);
+  assert.equal(await c.eval(`document.querySelector('link[rel="manifest"]').getAttribute('href')`),'./manifest.webmanifest');
+  console.log('PASS 全屏安装清单、应用图标与离线资源已配置');
   assert.deepEqual(c.errors,[]); console.log('PASS 页面无 JavaScript 运行错误');
   ws.close();
 }

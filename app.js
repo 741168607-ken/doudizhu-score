@@ -7,7 +7,7 @@
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   let state = G.defaults(), lastSnapshot = null, muted = false;
   let animation = null, dangerNames = [], rankExpanded = false, modalOpen = false;
-  let picker = null, wheelTimer = null, toastTimer = null, audioContext = null;
+  let picker = null, wheelTimer = null, bombWheelTimer = null, bombResizeTimer = null, toastTimer = null, audioContext = null;
 
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
@@ -31,9 +31,9 @@
   }
   function icon(name) { return `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`; }
   function roleInfo(index) {
-    if (!state.result || state.landlord === null) return { text: '地主', sub: '胜 / 败', cls: '' };
-    if (index === state.landlord) return state.result === 'landlordWin' ? { text: '地主胜', sub: '再点切换为地主败', cls: 'landlord' } : { text: '地主败', sub: '再点切换为地主胜', cls: 'landlord' };
-    return state.result === 'landlordWin' ? { text: '农民败', sub: '本局计入金', cls: 'farmer-loss' } : { text: '农民胜', sub: '本局不计入金', cls: 'farmer-win' };
+    if (!state.result || state.landlord === null) return { text: '未确定', sub: '点击设置胜负', cls: '', image: 'role-default' };
+    if (index === state.landlord) return state.result === 'landlordWin' ? { text: '地主胜', sub: '再点切换为地主败', cls: 'landlord', image: 'landlord-win' } : { text: '地主败', sub: '再点切换为地主胜', cls: 'landlord', image: 'landlord-lose' };
+    return state.result === 'landlordWin' ? { text: '农民败', sub: '本局计入金', cls: 'farmer-loss', image: 'farmer-lose' } : { text: '农民胜', sub: '本局不计入金', cls: 'farmer-win', image: 'farmer-win' };
   }
   function displayValues(index) {
     const name = state.active[index], total = Number(state.totals[name]) || 0;
@@ -47,9 +47,9 @@
       const classes = ['player-cell', state.result ? 'pending' : '', dangerNames.includes(name) ? 'danger' : ''].join(' ');
       return `<div class="${classes}" data-player="${i}">
         <button class="player-select" style="grid-row:1;grid-column:${2 + i}" data-player-picker="${i}" type="button" ${state.started || state.animating || modalOpen ? 'disabled' : ''} aria-label="选择第 ${i + 1} 位玩家">${name}${icon('chevron')}</button>
-        <div class="total-value" style="grid-row:2;grid-column:${2 + i}" data-total="${i}">${values.total}</div>
+        <div class="total-value" style="grid-row:2;grid-column:${2 + i}" data-total="${i}"><span class="flip-number">${values.total}</span></div>
         <div class="round-value" style="grid-row:3;grid-column:${2 + i}" data-round="${i}">${values.round}</div>
-        <button class="role-btn ${role.cls}" style="grid-row:4;grid-column:${2 + i}" data-role="${i}" type="button" ${!state.started || state.animating || modalOpen ? 'disabled' : ''} aria-label="${name}，${role.text}">${role.text}<small>${role.sub}</small></button>
+        <button class="role-btn ${role.cls}" style="grid-row:4;grid-column:${2 + i}" data-role="${i}" type="button" ${!state.started || state.animating || modalOpen ? 'disabled' : ''} aria-label="${name}，${role.text}，${role.sub}"><img src="./assets/images/${role.image}.webp" alt="" width="320" height="320" draggable="false"><span class="role-caption">${role.text}</span></button>
       </div>`;
     }).join('');
   }
@@ -60,14 +60,38 @@
     $('expandRank').classList.remove('expanded');
     $('expandRank').innerHTML = `展开全部${icon('chevron')}`;
   }
+  function renderBombs() {
+    const wheel = $('bombWheel'), locked = !state.started || state.animating || modalOpen;
+    if (!wheel.children.length) wheel.innerHTML = G.OPTIONS.bombs.map(value => `<button class="bomb-number" type="button" role="option" data-bomb-value="${value}" aria-label="${value} 炸">${value}</button>`).join('');
+    wheel.classList.toggle('locked', locked);
+    wheel.querySelectorAll('[data-bomb-value]').forEach(btn => {
+      const selected = Number(btn.dataset.bombValue) === state.bombs;
+      btn.classList.toggle('selected', selected); btn.setAttribute('aria-selected', String(selected)); btn.disabled = locked;
+    });
+  }
+  function bombWheelTarget(btn) {
+    const wheel = $('bombWheel'), wheelRect = wheel.getBoundingClientRect(), btnRect = btn.getBoundingClientRect();
+    return wheel.scrollLeft + btnRect.left - wheelRect.left + btnRect.width / 2 - wheel.clientWidth / 2;
+  }
+  function centerBombWheel(smooth = true) {
+    const wheel = $('bombWheel'), selected = wheel.querySelector(`[data-bomb-value="${state.bombs}"]`);
+    if (!selected) return;
+    wheel.scrollTo({ left: bombWheelTarget(selected), behavior: smooth && !reducedMotion.matches ? 'smooth' : 'auto' });
+  }
+  function selectBomb(value, smooth = true) {
+    if (!state.started || state.animating || modalOpen) return;
+    state.bombs = Math.max(0, Math.min(10, value)); save(); renderBombs(); centerBombWheel(smooth); tone(300 + state.bombs * 18,.045,.02,'triangle');
+  }
   function render() {
-    renderPlayers(); renderRanking();
+    renderPlayers(); renderRanking(); renderBombs();
     const locked = !state.started || state.animating || modalOpen;
     $('phaseBadge').className = `phase-badge ${state.started ? 'live' : ''}`;
     $('phaseBadge').innerHTML = `<i></i>${state.animating ? '正在入账' : state.started ? '计分进行中' : '等待开局'}`;
-    $('bombValue').textContent = state.bombs === 0 ? '没' : `${state.bombs} 炸`;
-    $('bombPicker').disabled = locked;
     $('settleBtn').disabled = locked;
+    $('settleBtn').classList.toggle('boom', state.animating);
+    const boomSrc = './assets/images/bomb-boom.webp', readySrc = './assets/images/bomb-ready.webp';
+    const settleBomb = $('settleBomb'), wanted = state.animating ? boomSrc : readySrc;
+    if (settleBomb && settleBomb.getAttribute('src') !== wanted) settleBomb.src = wanted;
     $('minValue').textContent = state.min; $('maxValue').textContent = state.max;
     $('thresholdValue').textContent = state.threshold; $('stepValue').textContent = `+${state.step}`;
     document.querySelectorAll('[data-picker="min"],[data-picker="max"],[data-picker="threshold"],[data-picker="step"]').forEach(btn => btn.disabled = state.started || state.animating || modalOpen);
@@ -118,8 +142,7 @@
   function unavailableNames(except) { return [...state.active, ...state.bench].filter(n => n !== except); }
   function openPicker(type, index = null) {
     if (modalOpen || state.animating) return;
-    if (state.started && type !== 'bombs') return;
-    if (!state.started && type === 'bombs') return;
+    if (state.started) return;
     let options, current, title, apply;
     if (type === 'player') {
       const old = state.active[index]; options = G.NAMES.filter(n => !unavailableNames(old).includes(n)); current = old; title = `选择场上玩家 ${index + 1}`;
@@ -128,7 +151,7 @@
       const old = state.bench[index]; options = G.NAMES.filter(n => !unavailableNames(old).includes(n)); current = old; title = `选择候场玩家 ${index + 1}`;
       apply = value => { state.bench[index] = value; state.involved = [...new Set([...state.involved, value])]; };
     } else {
-      options = G.OPTIONS[type]; current = state[type]; title = { bombs: '选择炸弹数量', min: '选择桌限下限', max: '选择桌限上限', threshold: '选择斩杀线', step: '选择斩杀线步进' }[type];
+      options = G.OPTIONS[type]; current = state[type]; title = { min: '选择桌限下限', max: '选择桌限上限', threshold: '选择斩杀线', step: '选择斩杀线步进' }[type];
       apply = value => { state[type] = value; };
     }
     picker = { type, options, selected: Math.max(0, options.indexOf(current)), apply };
@@ -136,7 +159,7 @@
     renderWheel(); requestAnimationFrame(() => { centerWheel(false); $('wheel').focus(); });
   }
   function renderWheel() {
-    $('wheel').innerHTML = picker.options.map((value, i) => `<div class="wheel-option ${i === picker.selected ? 'selected' : ''}" role="option" aria-selected="${i === picker.selected}" data-option="${i}">${picker.type === 'bombs' && value === 0 ? '没（0 炸）' : picker.type === 'step' ? `+${value}` : value}</div>`).join('');
+    $('wheel').innerHTML = picker.options.map((value, i) => `<div class="wheel-option ${i === picker.selected ? 'selected' : ''}" role="option" aria-selected="${i === picker.selected}" data-option="${i}">${picker.type === 'step' ? `+${value}` : value}</div>`).join('');
     $('wheel').querySelectorAll('[data-option]').forEach(el => el.onclick = () => { picker.selected = Number(el.dataset.option); centerWheel(true); renderWheel(); });
   }
   function centerWheel(smooth = true) { if (!picker) return; if ($('wheel').children[picker.selected]) $('wheel').children[picker.selected].scrollIntoView({ block: 'center', behavior: smooth && !reducedMotion.matches ? 'smooth' : 'auto' }); }
@@ -150,6 +173,12 @@
     picker = null; $('pickerSheet').hidden = true; $('sheetBackdrop').hidden = true;
   }
 
+  function updateFlipNumber(container, value) {
+    const number = container && container.querySelector('.flip-number');
+    if (!number || number.textContent === String(value)) return;
+    number.textContent = value;
+    if (!reducedMotion.matches) { number.classList.remove('flip-tick'); void number.offsetWidth; number.classList.add('flip-tick'); }
+  }
   async function settle() {
     if (!state.started || !state.result || state.animating || modalOpen) return;
     lastSnapshot = G.clone(state);
@@ -165,14 +194,14 @@
         animation.progress = 1 - Math.pow(1 - linear, 3);
         state.active.forEach((_, i) => {
           const values = displayValues(i), totalEl = document.querySelector(`[data-total="${i}"]`), roundEl = document.querySelector(`[data-round="${i}"]`);
-          if (totalEl) totalEl.textContent = values.total; if (roundEl) roundEl.textContent = values.round;
+          if (totalEl) updateFlipNumber(totalEl, values.total); if (roundEl) roundEl.textContent = values.round;
         });
         if (now - lastTick > 90 && linear < 1 && result.changes.some(Boolean)) { tickSound(); lastTick = now; }
         if (linear < 1) requestAnimationFrame(frame); else resolve();
       }
       requestAnimationFrame(frame);
     });
-    animation = null; state.animating = false; state.active.forEach((_,i) => {}); save(); render();
+    animation = null; state.animating = false; save(); render(); centerBombWheel(true);
     $('announcer').textContent = `本局入金已完成，${state.active.map((n,i) => `${n}入金${result.changes[i]}`).join('，')}`;
     await checkRotation();
   }
@@ -207,9 +236,31 @@
     if (player) openPicker('player', Number(player.dataset.playerPicker));
     if (role) { state = G.selectRole(state, Number(role.dataset.role)); tone(360,.08,.03,'triangle'); save(); render(); }
   });
-  $('bombPicker').onclick = () => openPicker('bombs');
-  document.querySelectorAll('[data-picker]').forEach(btn => { if (btn.id !== 'bombPicker') btn.onclick = () => openPicker(btn.dataset.picker); });
+  document.querySelectorAll('[data-picker]').forEach(btn => { btn.onclick = () => openPicker(btn.dataset.picker); });
   $('benchList').onclick = event => { const btn = event.target.closest('[data-bench]'); if (btn) openPicker('bench', Number(btn.dataset.bench)); };
+  $('bombWheel').addEventListener('click', event => { const btn = event.target.closest('[data-bomb-value]'); if (btn) selectBomb(Number(btn.dataset.bombValue)); });
+  $('bombWheel').addEventListener('scroll', () => {
+    clearTimeout(bombWheelTimer); bombWheelTimer = setTimeout(() => {
+      if (!state.started || state.animating || modalOpen) return;
+      const wheel = $('bombWheel'), wheelRect = wheel.getBoundingClientRect(), center = wheelRect.left + wheel.clientWidth / 2;
+      const nearest = [...wheel.querySelectorAll('[data-bomb-value]')].reduce((best, btn) => {
+        const rect = btn.getBoundingClientRect(), bestRect = best.getBoundingClientRect();
+        return Math.abs(rect.left + rect.width / 2 - center) < Math.abs(bestRect.left + bestRect.width / 2 - center) ? btn : best;
+      });
+      selectBomb(Number(nearest.dataset.bombValue));
+    }, 100);
+  }, { passive: true });
+  $('bombWheel').addEventListener('keydown', event => {
+    if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+    event.preventDefault();
+    selectBomb(event.key === 'Home' ? 0 : event.key === 'End' ? 10 : state.bombs + (event.key === 'ArrowRight' ? 1 : -1));
+  });
+  function showMore(show) {
+    $('moreScreen').classList.toggle('visible', show); $('moreScreen').inert = !show;
+    $('moreBtn').setAttribute('aria-expanded', String(show));
+    if (show) $('backBtn').focus(); else $('moreBtn').focus();
+  }
+  $('moreBtn').onclick = () => showMore(true); $('backBtn').onclick = () => showMore(false);
   $('settleBtn').onclick = settle;
   $('startBtn').onclick = () => { if (state.started) return; state.started = true; state.result = null; state.landlord = null; startSound(); save(); render(); toast('牌局开始，基础设置已锁定'); };
   $('resetBtn').onclick = async () => {
@@ -235,7 +286,9 @@
   ['pointerup','pointercancel','pointerleave'].forEach(type => $('undoZone').addEventListener(type, cancelHold));
   $('undoZone').addEventListener('keydown', event => { if ((event.key === 'Enter' || event.key === ' ') && lastSnapshot && !event.repeat) { event.preventDefault(); startHold(event); } });
   $('undoZone').addEventListener('keyup', cancelHold);
-  document.addEventListener('keydown', event => { if (event.key === 'Escape' && picker) closePicker(false); });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && picker) closePicker(false); else if (event.key === 'Escape' && $('moreScreen').classList.contains('visible') && !modalOpen) showMore(false); });
+  window.addEventListener('resize', () => { clearTimeout(bombResizeTimer); bombResizeTimer = setTimeout(() => centerBombWheel(false), 90); });
   window.addEventListener('pagehide', save);
-  render();
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+  render(); requestAnimationFrame(() => centerBombWheel(false));
 })();

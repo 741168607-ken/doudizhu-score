@@ -5,7 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#b8322a">
   <meta name="description" content="线下三人斗地主入金计分工具">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="牛肉面斗地主">
   <title>牛肉面斗地主 · 计分台</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
+  <link rel="preload" as="image" href="./assets/images/bomb-boom.webp">
+  <link rel="preload" as="image" href="./assets/images/bomb-ready.webp">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -34,21 +43,24 @@
     <section class="score-panel" aria-labelledby="tableTitle">
       <div class="panel-heading">
         <div><span class="eyebrow">CURRENT TABLE</span><h2 id="tableTitle">本桌计分</h2></div>
-        <span id="phaseBadge" class="phase-badge"><i></i>等待开局</span>
+        <div class="panel-actions"><span id="phaseBadge" class="phase-badge"><i></i>等待开局</span><button id="moreBtn" class="more-btn" type="button">查看更多<svg><use href="#i-chevron"/></svg></button></div>
       </div>
 
       <div id="playerGrid" class="player-grid" aria-label="场上玩家"></div>
 
       <div class="settle-strip">
-        <div class="bomb-copy"><svg><use href="#i-bomb"/></svg><div><strong>本局炸弹</strong><span>0 炸按桌限下限计入金</span></div></div>
-        <button id="bombPicker" class="value-picker" type="button" data-picker="bombs" aria-label="选择炸弹数量"><span id="bombValue">没</span><svg><use href="#i-chevron"/></svg></button>
-        <button id="settleBtn" class="settle-btn" type="button">炸<span>确认本局入金</span></button>
+        <div class="bomb-control">
+          <div class="bomb-copy"><svg><use href="#i-bomb"/></svg><div><strong>本局炸弹</strong><span>左右滑动选择数量</span></div></div>
+          <div id="bombWheel" class="bomb-wheel" tabindex="0" role="listbox" aria-label="炸弹数量，左右滑动选择"></div>
+        </div>
+        <button id="settleBtn" class="settle-btn" type="button" aria-label="炸，确认本局入金"><img id="settleBomb" class="settle-bomb" src="./assets/images/bomb-ready.webp" alt="" width="288" height="288" draggable="false"><span class="settle-label">炸<small>确认本局入金</small></span></button>
       </div>
       <div id="roundHint" class="round-hint" aria-live="polite"><span class="hint-dot"></span>开局后，点击玩家身份按钮确认地主胜负</div>
       <div id="undoZone" class="undo-zone" tabindex="0" role="button" aria-label="长按撤回最近一次入金"><svg><use href="#i-undo"/></svg><span id="undoText">长按本区域 2 秒，可撤回最近一次入金</span><i id="holdProgress"></i></div>
     </section>
 
-    <aside class="side-column">
+    <aside id="moreScreen" class="side-column" aria-label="入金排名与牌桌设置" inert>
+      <div class="more-screen-heading"><button id="backBtn" class="more-btn" type="button"><svg><use href="#i-chevron"/></svg>返回计分</button><strong>排名与设置</strong></div>
       <section class="rank-panel" aria-labelledby="rankTitle">
         <div class="section-heading"><div><span class="eyebrow">LEADERBOARD</span><h2 id="rankTitle">入金排名</h2></div><span class="small-note">高到低</span></div>
         <ol id="rankList" class="rank-list"></ol>
