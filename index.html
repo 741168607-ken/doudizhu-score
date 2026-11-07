@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#2a2e33">
+  <meta name="description" content="线下三人斗地主入金计分工具">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="牛肉面斗地主">
+  <title>牛肉面斗地主 · 计分台</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./assets/images/logo.png">
+  <link rel="apple-touch-icon" href="./assets/images/logo.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <svg class="svg-defs" aria-hidden="true"><defs>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5Zm4 4a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12"/></symbol>
+    <symbol id="i-muted" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5Zm5 5 5 5m0-5-5 5"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87m-2-11.96a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h10m4 0h2M4 17h2m4 0h10M14 4v6M6 14v6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  </defs></svg>
+
+  <!-- 顶部品牌栏 -->
+  <header class="brand-bar">
+    <div class="brand-inner">
+      <img class="brand-mark" src="./assets/images/logo.png" alt="" draggable="false">
+      <div class="brand-text">
+        <h1>牛肉面斗地主</h1>
+        <p class="brand-slogan">不服就干 (牛肉面)，不问咸淡！</p>
+      </div>
+      <button id="soundBtn" class="icon-btn" type="button" aria-label="关闭音效" aria-pressed="false">
+        <svg><use href="#i-volume"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <!-- 计分主面板 -->
+    <section class="score-panel" aria-labelledby="tableTitle">
+      <div class="panel-heading">
+        <button id="phaseBadge" class="phase-badge" type="button" aria-label="等待开局"><i></i><span id="phaseText">等待开局</span></button>
+        <button id="moreBtn" class="more-btn" type="button" aria-label="查看更多">
+          <svg><use href="#i-settings"/></svg>
+        </button>
+      </div>
+
+      <!-- 三列玩家计分 + 炸弹刻度盘（统一三列拉丝银白背景） -->
+      <div class="table-zone">
+        <div class="zone-columns" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div id="playerGrid" class="player-grid" aria-label="场上玩家"></div>
+
+        <!-- 炸弹拉丝刻度盘 + 两侧操作按钮（遮罩CD底垫在按钮下方） -->
+        <div class="bomb-section">
+          <div class="bomb-mask" aria-hidden="true"></div>
+          <button id="resetBtn" class="reset-btn side-action" type="button">翻台</button>
+          <div id="bombRing" class="bomb-ring" tabindex="0" role="slider" aria-label="炸弹数量，拖动旋转选择"
+               aria-valuemin="0" aria-valuemax="9" aria-valuenow="0" aria-valuetext="0 炸">
+            <div class="ring-dial" id="ringDial"></div>
+            <button id="settleBtn" class="settle-btn" type="button" aria-label="炸弹">
+              <img id="bombImg" src="./assets/images/bomb-before.png" alt="" draggable="false">
+            </button>
+            <span class="ring-pointer" aria-hidden="true"></span>
+            <span class="ring-magnifier" aria-hidden="true"><i class="mg-glass"></i><b class="mg-digit">0</b></span>
+          </div>
+          <button id="startBtn" class="start-btn side-action" type="button">搞起</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 排名与设置（侧屏） -->
+    <aside id="moreScreen" class="side-column" aria-label="入金排名与牌桌设置" inert>
+      <div class="sheet-drag" aria-hidden="true"></div>
+      <section class="rank-panel" aria-labelledby="rankTitle">
+        <div class="section-heading"><div><h2 id="rankTitle">入金排名</h2></div><span class="small-note">高到低</span></div>
+        <ol id="rankList" class="rank-list"></ol>
+        <button id="expandRank" class="text-btn" type="button" hidden>展开全部<svg><use href="#i-chevron"/></svg></button>
+      </section>
+      <section class="settings-panel" aria-labelledby="settingsTitle">
+        <div class="section-heading"><div><h2 id="settingsTitle">牌桌设置</h2></div></div>
+        <div class="setting-row"><div><strong>桌限</strong><span>入金上下限</span></div><div class="paired-pickers"><button class="value-picker" data-picker="min" type="button"><small>MIN</small><span id="minValue">1</span><svg><use href="#i-chevron"/></svg></button><button class="value-picker" data-picker="max" type="button"><small>MAX</small><span id="maxValue">200</span><svg><use href="#i-chevron"/></svg></button></div></div>
+        <div class="setting-row"><div><strong>斩杀线</strong><span>触发玩家轮换</span></div><div class="paired-pickers"><button class="value-picker" data-picker="threshold" type="button"><span id="thresholdValue">100</span><svg><use href="#i-chevron"/></svg></button><button class="value-picker" data-picker="step" type="button"><span id="stepValue">+50</span><svg><use href="#i-chevron"/></svg></button></div></div>
+        <div class="bench-block"><div class="bench-title"><span><svg><use href="#i-users"/></svg>候场玩家</span></div><div id="benchList" class="bench-list"></div></div>
+      </section>
+    </aside>
+  </main>
+
+  <!-- 抽屉外点击遮罩（点击非抽屉区域收回抽屉） -->
+  <div id="drawerBackdrop" class="drawer-backdrop" hidden></div>
+
+  <!-- 选择器弹层 -->
+  <div id="sheetBackdrop" class="backdrop" hidden></div>
+  <section id="pickerSheet" class="bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="pickerTitle" hidden>
+    <div class="sheet-handle"></div>
+    <div class="sheet-heading"><div><h2 id="pickerTitle">选择玩家</h2></div><button id="cancelPicker" class="text-btn" type="button">取消</button></div>
+    <div class="wheel-wrap"><div class="wheel-highlight"></div><div id="wheel" class="wheel" tabindex="0" role="listbox" aria-label="选项滚轮"></div></div>
+    <button id="confirmPicker" class="sheet-confirm" type="button">确定</button>
+  </section>
+
+  <!-- 确认弹窗 -->
+  <div id="modalBackdrop" class="backdrop modal-backdrop" hidden>
+    <section class="modal" role="alertdialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody">
+      <h2 id="modalTitle">确认操作</h2><div id="modalBody" class="modal-body"></div><div id="modalActions" class="modal-actions"></div>
+    </section>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="announcer" class="sr-only" aria-live="polite"></div>
+
+  <script src="./game.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

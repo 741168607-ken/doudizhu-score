@@ -1,0 +1,7 @@
+.workbuddy/
+*.bak
+*.bak2
+*.nomask.bak
+backup_old_images/
+tools/
+node_modules/
