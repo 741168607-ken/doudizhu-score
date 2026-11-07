@@ -14,7 +14,7 @@
   // 炸弹刻度盘旋转状态
   let ringRotation = 0, ringDragging = false, ringStartAngle = 0, ringStartPointerAngle = 0;
   let lastDragValue = 0; // 拖动过程中的上一个档位值，用于齿感音触发判定
-  let bombSoundTriggered = false; // 本局点击炸弹播放"我炸.wav"后，抑制结算时的"金币.wav"
+  let bombSoundTriggered = false; // 本局点击炸弹播放"我炸.mp3"后，抑制结算时的"金币.mp3"
   /* ============ 音效：串行队列播放 wav 文件（一次只播一个，播完才播下一个，避免互相打断） ============ */
   const soundCache = {};
   let soundQueue = [], soundPlaying = false;
@@ -35,11 +35,11 @@
       check();
     });
   }
-  // 数字变化.wav：即时打断式播放（不与串行队列混合，点击状态图时每次立即重播）
+  // 数字变化.mp3：即时打断式播放（不与串行队列混合，点击状态图时每次立即重播）
   let numberChangeAudio = null;
   function playNumberChange() {
     if (muted) return;
-    if (!numberChangeAudio) { numberChangeAudio = new Audio('./assets/images/数字变化.wav'); numberChangeAudio.preload = 'auto'; }
+    if (!numberChangeAudio) { numberChangeAudio = new Audio('./assets/images/数字变化.mp3'); numberChangeAudio.preload = 'auto'; }
     numberChangeAudio.currentTime = 0;
     const p = numberChangeAudio.play();
     if (p && p.catch) p.catch(() => {});
@@ -110,7 +110,7 @@
   function avatarImage(index) {
     const role = roleInfo(index);
     if (role.image === 'role-default') return './assets/images/logo.png';
-    return './assets/images/' + role.image + '.png';
+    return './assets/images/' + role.image + '.jpg';
   }
   function renderPlayers() {
     $('playerGrid').innerHTML = state.active.map((name, i) => {
@@ -120,11 +120,11 @@
       return `<div class="${classes} ${columnClass}" data-player="${i}">
         <button class="player-select" data-player-picker="${i}" type="button" ${state.started || state.animating || modalOpen ? 'disabled' : ''} aria-label="选择第 ${i + 1} 位玩家">${name}</button>
         <div class="score-total" data-total="${i}">
-          <img src="./assets/images/number-plate.png" alt="" draggable="false">
+          <img src="./assets/images/number-plate.jpg" alt="" draggable="false">
           <span class="flip-number">${values.total}</span>
         </div>
         <div class="score-round" data-round="${i}">
-          <img src="./assets/images/score-board.png" alt="" draggable="false">
+          <img src="./assets/images/score-board.jpg" alt="" draggable="false">
           <span class="round-number">${values.round}</span>
         </div>
         <div class="role-btn ${role.cls}" data-role="${i}" role="button" tabindex="0" aria-label="${name}，${role.text}" ${!state.started || state.animating || modalOpen ? 'data-disabled' : ''}>
@@ -243,7 +243,7 @@
     // 每跨过一个刻度档位，播放一次齿感音
     if (curValue !== lastDragValue) {
       lastDragValue = curValue;
-      playSound('齿感音.wav');
+      playSound('齿感音.mp3');
     }
     e.preventDefault();
   }
@@ -252,7 +252,7 @@
     ringDragging = false;
     $('bombRing').classList.remove('dragging');
     // 松手吸附：清空队列中尚未播放的齿感音（正在播的那个播完即止），不再播放剩余次数
-    clearPendingSound('齿感音.wav');
+    clearPendingSound('齿感音.mp3');
     // 松手吸附最近档位
     const value = valueFromAngle(ringRotation);
     selectBomb(value, true);
@@ -393,7 +393,7 @@
           const values = displayValues(i), totalEl = document.querySelector(`[data-total="${i}"]`), roundEl = document.querySelector(`[data-round="${i}"]`);
           if (totalEl) updateFlipNumber(totalEl, values.total); if (roundEl) updateRoundNumber(roundEl, values.round);
         });
-        if (now - lastTick > 90 && linear < 1 && result.changes.some(Boolean) && !bombSoundTriggered) { playSound('金币.wav'); lastTick = now; }
+        if (now - lastTick > 90 && linear < 1 && result.changes.some(Boolean) && !bombSoundTriggered) { playSound('金币.mp3'); lastTick = now; }
         if (linear < 1) requestAnimationFrame(frame); else resolve();
       }
       requestAnimationFrame(frame);
@@ -407,13 +407,13 @@
   async function checkRotation() {
     const plan = G.rotationPlan(state); if (!plan.length) return;
     dangerNames = plan.map(p => p.name); render();
-    // 达到轮换标准：先等音效队列（尤其"我炸.wav"）全部播完，再弹切换对话框
+    // 达到轮换标准：先等音效队列（尤其"我炸.mp3"）全部播完，再弹切换对话框
     await waitForSoundIdle();
     const multi = plan.length > 1;
     const body = `<p>${multi ? '以下场上玩家同分触发斩杀线，候场人数充足，将同时轮换：' : `场上玩家 <strong>${plan[0].name}</strong> 的入金小计最高，且已达到当前斩杀线 ${state.threshold}。`}</p><ul class="rotation-list">${plan.map(p => `<li><span><b>${p.name}</b>（${p.total}）下场</span><strong>${p.replacement} 上场</strong></li>`).join('')}</ul><p>确认后，新斩杀线将更新为 <strong>${Math.max(...plan.map(p => p.total)) + state.step}</strong>。</p>`;
     const yes = await showModal({ kicker: 'ROTATION', title: multi ? '同时轮换玩家？' : `是否轮换候场玩家 ${plan[0].replacement}？`, body, confirm: '是，轮换', cancel: '否' });
     dangerNames = [];
-    if (yes) { state = G.rotate(state, plan); playSound('让开.wav'); toast('玩家轮换完成，斩杀线已更新'); }
+    if (yes) { state = G.rotate(state, plan); playSound('让开.mp3'); toast('玩家轮换完成，斩杀线已更新'); }
     save(); render();
   }
 
@@ -472,11 +472,11 @@
     else selectBomb(state.bombs - 1);
   });
 
-  // 炸弹按钮：确定地主后可点击，播放我炸.wav + 翻转为"炸弹点击后.png"，保持到点击状态按钮后才恢复默认
+  // 炸弹按钮：确定地主后可点击，播放我炸.mp3 + 翻转为"炸弹点击后.png"，保持到点击状态按钮后才恢复默认
   function bombClick() {
     if (state.landlord == null || state.animating || modalOpen) return;
-    bombSoundTriggered = true; // 已点炸弹，后续结算不再播金币.wav
-    playSound('我炸.wav');
+    bombSoundTriggered = true; // 已点炸弹，后续结算不再播金币.mp3
+    playSound('我炸.mp3');
     $('bombImg').src = './assets/images/bomb-after.png';
   }
   $('settleBtn').addEventListener('click', event => {

@@ -1,14 +1,14 @@
-const CACHE = 'ddj-score-v32';
+const CACHE = 'ddj-score-v33';
 const APP_SHELL = [
   './', './index.html', './styles.css', './app.js', './game.js', './manifest.webmanifest',
   './assets/icons/icon-192.png', './assets/icons/icon-512.png',
   './assets/fonts/DS-Digital.woff', './assets/fonts/DS-Digital.ttf',
-  './assets/images/logo.png', './assets/images/number-plate.png', './assets/images/score-board.png',
+  './assets/images/logo.png', './assets/images/number-plate.jpg', './assets/images/score-board.jpg',
   './assets/images/dial.png', './assets/images/bomb-before.png', './assets/images/bomb-after.png',
-  './assets/images/farmer-win.png', './assets/images/farmer-lose.png',
-  './assets/images/landlord-win.png', './assets/images/landlord-lose.png',
+  './assets/images/farmer-win.jpg', './assets/images/farmer-lose.jpg',
+  './assets/images/landlord-win.jpg', './assets/images/landlord-lose.jpg',
   './assets/images/遮罩CD.png',
-  './assets/images/我炸.wav', './assets/images/金币.wav', './assets/images/齿感音.wav', './assets/images/让开.wav', './assets/images/数字变化.wav'
+  './assets/images/我炸.mp3', './assets/images/金币.mp3', './assets/images/齿感音.mp3', './assets/images/让开.mp3', './assets/images/数字变化.mp3'
 ];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
