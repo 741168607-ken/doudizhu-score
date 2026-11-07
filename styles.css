@@ -35,7 +35,11 @@ svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 .brand-text{flex:1;min-width:0}
 .brand-text h1{margin:0;font-size:22px;font-weight:900;letter-spacing:.03em;color:var(--ink);text-shadow:0 1px 0 rgba(255,255,255,.8)}
 .brand-text p{margin:2px 0 0;font-size:12px;color:var(--muted);letter-spacing:.06em}
-.brand-slogan{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;letter-spacing:.02em}
+.brand-slogan{position:relative;margin:2px 0 0;overflow:hidden;font-size:11px;letter-spacing:.02em;color:var(--muted);-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.brand-slogan .slogan-track{display:inline-flex;align-items:center;white-space:nowrap;will-change:transform;animation:slogan-scroll 12s linear infinite}
+.brand-slogan .slogan-track span{display:inline-block;padding-right:3.2em}
+@keyframes slogan-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.brand-slogan .slogan-track{animation:none}}
 .icon-btn{flex:none;width:42px;height:42px;border-radius:10px;border:1px solid #b9bec4;background:var(--cd-brush),var(--cd-metal);color:var(--ink);display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.85), 0 2px 4px rgba(40,45,52,.2)}
 .icon-btn:active{transform:scale(.95)}
 .icon-btn svg{width:21px;height:21px}

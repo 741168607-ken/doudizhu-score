@@ -1,4 +1,4 @@
-const CACHE = 'ddj-score-v31';
+const CACHE = 'ddj-score-v32';
 const APP_SHELL = [
   './', './index.html', './styles.css', './app.js', './game.js', './manifest.webmanifest',
   './assets/icons/icon-192.png', './assets/icons/icon-512.png',
